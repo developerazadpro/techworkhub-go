@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"sort"
 )
 //
 // ------------------DATA STRUCT--------------------------------
@@ -61,39 +60,11 @@ func matchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Score technicians
-	var scored []ScoredTech 
-
-	for _, tech := range req.Technicians {
-		score := 0
-
-		for _, required := range req.RequiredSkills {
-			for _, skill := range tech.Skills {
-				if skill == required {
-					score++
-				}
-			}
-		}
-
-		// Include only technicians with at least one matching skill
-		if score > 0 {
-			scored = append(scored, ScoredTech{
-				ID: tech.ID,
-				Score: score,
-			})
-		}
-	}
-
-	// Sort by score (descending)
-	sort.Slice(scored, func(i, j int) bool {
-		return scored[i].Score > scored[j].Score
-	})
-
 	// Prepare response
-	var recommended []int 
-	for _, tech := range scored {
-		recommended = append(recommended, tech.ID)
-	}
+	recommended := MatchTechnicians(
+		req.RequiredSkills,
+		req.Technicians,
+	)
 
 	resp := MatchResponse{
 		RecommendedTechnicians: recommended,
