@@ -20,7 +20,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app
 # ---------- Stage 2: Run ----------
 FROM alpine:latest
 
-WORKDIR /root/
+WORKDIR /app
 
 # Copy compiled binary
 COPY --from=builder /app/app .
