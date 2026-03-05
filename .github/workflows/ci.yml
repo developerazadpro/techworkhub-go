@@ -3,8 +3,8 @@ name: Go CI
 on:
   push:
     branches: [ main, feature/** ]
-    pull_request:
-      branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
@@ -18,8 +18,41 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
+
       - name: Verify Dependencies
         run: go mod tidy
 
       - name: Run Tests
-        run: go test ./... -v 
+        run: go test ./... -v
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Create safe branch tag
+        run: echo "BRANCH_TAG=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
+
+      - name: Build Docker Images
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/techworkhub-go:latest \
+            -t ghcr.io/${{ github.repository_owner }}/techworkhub-go:${{ env.BRANCH_TAG }} \
+            -t ghcr.io/${{ github.repository_owner }}/techworkhub-go:${{ github.sha }} \
+            .
+
+      - name: Push Docker Images
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/techworkhub-go:latest
+          docker push ghcr.io/${{ github.repository_owner }}/techworkhub-go:${{ env.BRANCH_TAG }}
+          docker push ghcr.io/${{ github.repository_owner }}/techworkhub-go:${{ github.sha }}
